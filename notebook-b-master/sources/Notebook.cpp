@@ -3,22 +3,24 @@
 #include <string.h>
 #include "Notebook.hpp"
 #include "Direction.hpp"
+#include <cctype>
 #include <unordered_map>
-//#define LIM_ROW 100
-//#define LIM 99
+
 constexpr unsigned int LIM_ROW = 100;
 constexpr unsigned int LIM = 99;
 
 using namespace ariel;
+using namespace std;
 
 const char no = '_';
+
 const char tilda = '~';
 const char space = 32;
 const char nl = '\n';
-using namespace std;
- 
 
-    namespace ariel{
+
+namespace ariel{
+
        Notebook:: Notebook(){
         minRow = minCol = 0;
         maxRow = (int)UINT32_MAX;
@@ -34,6 +36,7 @@ using namespace std;
         }
 
          bool Notebook::check_clean(int page,int row,int column,Direction d, const string &str ){
+             cout << "check_cleaok" << endl;
 
            int len=str.length();
                     if (d == Direction::Horizontal){
@@ -45,16 +48,21 @@ using namespace std;
                         }
                             for(int i = 0;i<len ;i++ ) {
                                 auto it = notebook[page][row].find(column + i);
-                                if ((it != notebook[page][row].end()) || (it->second != no)) {
+                                if ((it != notebook[page][row].end()) && (it->second != no)) {
                                     return false;
                                 }
                             }
                     }
                     else{
+                        try { notebook.at(page);
+
+                        }
+                        catch(exception &e){
+                            return true;}
                         for(int i = 0;i<len ;i++ ){
                             auto it = notebook[page].find(row+i);
                             if( it !=notebook[page].end()) {
-                                if (it->second.find(column) != notebook[page][row + i].end() || it->second[column]!=no) {
+                                if (it->second.find(column) != notebook[page][row + i].end() && it->second[column]!=no) {
                                     return false;
                                 }
                             }
@@ -63,48 +71,61 @@ using namespace std;
             }
 
 
-
-
-         bool Notebook::check_char(const  string  &str){
-            int len=str.length();
-            for(unsigned i=0;i<len;i++){
-                if((str.at(i)==tilda)||(str.at(i)==nl)){
-                    return false;
+            bool Notebook::my_isprint(const string &str){
+               for(unsigned i=0;i<str.length();i++){
+                   if(isprint(str[i])==0){
+                       return false;
+                   }
+               }
+                    return true;
                 }
-            }return true;
-        }
 
-         string Notebook:: no_space( string str){
-            unsigned len=str.length();
-            for(unsigned i=0;i<len;i++){
-                if(str[i]==space){
-                    str[i]=no;}
+             bool Notebook::check_char(const  string  &str){
+                int len=str.length();
+                for(unsigned i=0;i<len;i++){
+                    if((str.at(i)==tilda)||(str.at(i)==nl)){
+                        return false;
+                    }
+                }return true;
             }
-            return str;
-        }
+
+             string Notebook:: no_space( string str){
+                unsigned len=str.length();
+                for(unsigned i=0;i<len;i++){
+                    if(str[i]==space){
+                        str[i]=no;}
+                }
+                return str;
+            }
+
 
             void Notebook::write(int page, int row, int column, Direction d, const string &str){
-
+                cout << "writing" << endl;
             int len=str.length();
+
+
             if (page<0||row<0||column<0 ){
                     throw std::out_of_range("negative input");}
 
-                if (column > LIM){
+
+            if (column > LIM){
                     throw std::out_of_range("illegal column location");}
 
-            if (!check_char(str)){
+            if (!check_char(str)||!my_isprint(str)){
                 throw std::out_of_range("illegal char");}
+
 
             if (!check_clean(page,row,column,d,str)){
                 throw std::out_of_range("illegal location");}
 
             update_limit(page,row,d,len);
-            string new_str = no_space(str);
+            string new_str ;
+//            string new_str = no_space(str);
 
 
                     if (d == Direction::Horizontal){
-                        if (column+len >= LIM ||len >= LIM ){
-                            throw std::out_of_range("illegal column location");}
+                        if (column+len > LIM ){
+                            throw std::out_of_range("can't write on this column location");}
 
                             for(int i = 0;i<len ;i++ ){
                                 unsigned j=(unsigned)i;
@@ -115,6 +136,8 @@ using namespace std;
                     else{
                             for(int i = 0;i<len ;i++ ){
                                 unsigned j=(unsigned)i;
+//                                cout << "writing on vertical notebook" << endl;
+                                cout << i << endl;
                                 notebook[page][row+i][column]=new_str[j];
 
                             }
@@ -128,24 +151,28 @@ using namespace std;
 
         string Notebook::read( int page, int row,  int column, Direction d,  int length)
         {
-
             if (page<0||row<0||column<0 ){
                 throw std::out_of_range("negative input");}
+
+            if (column> LIM ){
+                throw std::out_of_range("illegal column2 location");}
+
             string read_str;
+
 
            if(notebook.find(page)==notebook.end()){
 
                for(unsigned i=0 ;i<length;i++){
-                   read_str[i]=no;
+                   read_str.push_back(no);
                }
                return read_str;
                }
-//            if(notebook[page].find(page)==notebook[page].end()){
-//                throw std::out_of_range("illegal row location");}
 
-            if (column+length > LIM ){
-                throw std::out_of_range("illegal column location");}
-                
+
+            if (column+length > LIM){
+                throw std::out_of_range("illegal column5 location");}
+
+
 
             if (d == Direction::Horizontal)
             {
@@ -176,14 +203,9 @@ using namespace std;
                     }
                 }
             }
+
             return read_str;
         }
-
-
-
-
-
-
 
 
 
@@ -193,12 +215,15 @@ using namespace std;
             if (page<0||row<0||column<0 ){
                 throw std::out_of_range("negative input");}
 
-            if (column+length > LIM ){
+            if (column > LIM ){
                 throw std::out_of_range("illegal column location");
             }
 
 
                     if (d == Direction::Horizontal){
+                        if (column+length > LIM ){
+                            throw std::out_of_range("illegal column location");
+                        }
                             for(int i = 0;i<length ;i++ ){
                             notebook[page][row][column+i]=tilda;
                             }
